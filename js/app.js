@@ -52,7 +52,7 @@ Object.assign(left.style, {
 
 // Panneau gauche - Titre
 const imageTitle = document.createElement('div');
-imageTitle.textContent = "Qui se cahce derrière ?";
+imageTitle.textContent = "Qui se cache derrière ?";
 Object.assign(imageTitle.style, {
     fontSize: "1.3rem",
     fontWeight: "bold",
@@ -81,6 +81,12 @@ Object.assign(celebCounter.style, {
     fontSize: "0.9rem",
     opacity: "0.7"
 });
+
+function updateCounter() {
+    const done = CELEBRITIES.length - celebsRemaining.length;
+    celebCounter.textContent = `Célébrité ${done} / ${CELEBRITIES.length}`;
+}
+updateCounter();
 
 // Panneau gauche - Canva
 const canvasWrapper = document.createElement('div');
@@ -279,11 +285,11 @@ function loadCelebrity() {
 
     hasGuessed = false;
     feedback.textContent = "";
-    updateCounter();
 
     // Choisir aléatoirement une celeb
     const randIdx = Math.floor(Math.random() * celebsRemaining.length);
     const celebName = celebsRemaining.splice(randIdx, 1)[0];
+    updateCounter();
     currentCelebIndex = CELEBRITIES.indexOf(celebName);
     currentCorrectName = celebName;
 
@@ -373,10 +379,6 @@ function showEndScreen() {
     const endBlock = document.createElement("div");
     Object.assign(endBlock.style, { textAlign: "center", padding: "40px" });
 
-    const trophy = document.createElement("div");
-    trophy.textContent = "🏆";
-    trophy.style.fontSize = "4rem";
-
     const endTitle = document.createElement("div");
     endTitle.textContent = "Partie terminée !";
     Object.assign(endTitle.style, {
@@ -407,7 +409,6 @@ function showEndScreen() {
     restartBtn.addEventListener("mouseleave", () => restartBtn.style.backgroundColor = "#0f3460");
     restartBtn.addEventListener("click", () => location.reload());
 
-    endBlock.appendChild(trophy);
     endBlock.appendChild(endTitle);
     endBlock.appendChild(endScore);
     endBlock.appendChild(restartBtn);
@@ -445,10 +446,9 @@ async function loadQuestion() {
 
             if (index === data.correctIndex) {
                 btn.style.backgroundColor = '#2ecc71';
-                console.log('Bonne réponse !');
+                revealRandomTiles(TILES_PER_CORRECT);
             } else {
                 btn.style.backgroundColor = '#e74c3c';
-                console.log('Mauvaise réponse');
             }
             setTimeout(loadQuestion, 1500);
         });
