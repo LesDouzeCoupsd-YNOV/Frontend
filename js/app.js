@@ -4,9 +4,13 @@ import { fetchQuestion } from "./api.js";
 const CELEBRITIES = [
     "Joe Keery",
     "Michael B Jordan",
-    "Eminem",
-    "Florent Manaudou",
-    "Lewis Hamilton"
+    "Lewis Hamilton", 
+    "Louis de Funès",
+    "Margot Robbie",
+    "Marion Cotillard",
+    "Pedro Pascal",
+    "Rafael Nadal",
+    "Theodora"
 ];
 const GRID_COLS = 4;
 const GRID_ROWS = 4;
