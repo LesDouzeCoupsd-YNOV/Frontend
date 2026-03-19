@@ -1,6 +1,6 @@
 const buttons = {
-    "btn-game":    "../index.html",
-    "btn-quit-game": "/static/test.html",
+    "btn-game":    "../game.html",
+    "btn-quit-game": "../404.html",
 };
 
 for (const [id, page] of Object.entries(buttons)) {
