@@ -1,6 +1,6 @@
 const buttons = {
     "btn-game":    "../game.html",
-    "btn-quit-game": "../404.html",
+    "btn-quit-game": "https://www.youtube.com/watch?v=uPLX6Lee9K8&list=RDuPLX6Lee9K8&start_radio=1",
 };
 
 for (const [id, page] of Object.entries(buttons)) {
