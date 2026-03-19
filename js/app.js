@@ -65,6 +65,7 @@ Object.assign(answersGrid.style, {
 });
 
 async function loadQuestion() {
+    let locked = false;
     const data = await fetchQuestion();
 
     question.textContent = data.q;
@@ -87,6 +88,9 @@ async function loadQuestion() {
         btn.addEventListener('mouseenter', () => btn.style.borderColor = '#c7b136ff');
         btn.addEventListener('mouseleave', () => btn.style.borderColor = 'transparent');
         btn.addEventListener('click', () => {
+            if (locked) return;
+            locked = true;
+
             if (index === data.correctIndex) {
                 btn.style.backgroundColor = '#2ecc71';
                 console.log('Bonne réponse !');
