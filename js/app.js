@@ -1,17 +1,6 @@
-import { fetchQuestion } from "./api.js";
+import { fetchQuestion, startGame, submitGuess, nextCelebrity } from "./api.js";
 
 // config
-const CELEBRITIES = [
-    "Joe Keery",
-    "Michael B Jordan",
-    "Lewis Hamilton", 
-    "Louis de Funès",
-    "Margot Robbie",
-    "Marion Cotillard",
-    "Pedro Pascal",
-    "Rafael Nadal",
-    "Theodora"
-];
 const GRID_COLS = 4;
 const GRID_ROWS = 4;
 const TILES_PER_CORRECT = 1;
@@ -19,13 +8,15 @@ const TILE_BORDER_COLOR = "#c7b136ff";
 const TILE_COLOR = "#0f3460";
 
 // état du jeu
-let currentCelebIndex = -1;
+let gameId = null;
+let celebrities = [];
+let currentCorrectName = "";
+let currentNum = 0;
+let totalCelebs = 0;
 let tiles = [];
 let score = 0;
-let celebsRemaining = [...CELEBRITIES];
 let hasGuessed = false;
 let currentImage = null;
-let currentCorrectName = "";
 
 // reset 
 document.body.style.margin = '0';
@@ -77,7 +68,7 @@ Object.assign(scoreDisplay.style, {
 function updateScore() {
     scoreDisplay.textContent = `Score : ${score}`;
 }
-updateScore()
+updateScore();
 
 // Panneau gauche - Compteur de céleb
 const celebCounter = document.createElement('div');
@@ -87,10 +78,8 @@ Object.assign(celebCounter.style, {
 });
 
 function updateCounter() {
-    const done = CELEBRITIES.length - celebsRemaining.length;
-    celebCounter.textContent = `Célébrité ${done} / ${CELEBRITIES.length}`;
+    celebCounter.textContent = `Célébrité ${currentNum} / ${totalCelebs}`;
 }
-updateCounter();
 
 // Panneau gauche - Canva
 const canvasWrapper = document.createElement('div');
@@ -154,6 +143,11 @@ left.appendChild(canvasWrapper);
 left.appendChild(feedback);
 left.appendChild(guessSection);
 
+
+
+
+
+
 // Panneau droit
 const right = document.createElement("div");
 Object.assign(right.style, {
@@ -212,6 +206,10 @@ quizBlock.appendChild(question);
 quizBlock.appendChild(answersGrid);
 right.appendChild(quizBlock);
 
+
+
+
+
 // Fonction canvas
 
 function drawTiles() {
@@ -233,7 +231,7 @@ function drawTiles() {
             // Bordure
             ctx.strokeStyle = TILE_BORDER_COLOR;
             ctx.lineWidth = 2;
-            ctx.strokeRect(x + 1, y + 1, tileW -2, tileH - 2);
+            ctx.strokeRect(x + 1, y + 1, tileW - 2, tileH - 2);
 
             // Point d'interrogation
             ctx.fillStyle = "rgba(255,255,255,0.35)";
@@ -241,7 +239,6 @@ function drawTiles() {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText("?", x + tileW / 2, y + tileH / 2);
-
         }
     }
 }
@@ -280,22 +277,16 @@ function revealRandomTiles(count) {
     return toReveal.length;
 }
 
-// Gestion des céleb
-function loadCelebrity() {
-    if (celebsRemaining.length === 0) {
-        showEndScreen();
-        return;
-    }
 
+
+
+// Gestion des céleb
+function showCelebrity(celebName) {
+    currentCorrectName = celebName;
     hasGuessed = false;
     feedback.textContent = "";
 
-    // Choisir aléatoirement une celeb
-    const randIdx = Math.floor(Math.random() * celebsRemaining.length);
-    const celebName = celebsRemaining.splice(randIdx, 1)[0];
     updateCounter();
-    currentCelebIndex = CELEBRITIES.indexOf(celebName);
-    currentCorrectName = celebName;
 
     // Réinitialiser grille (tout cacher)
     tiles = new Array(GRID_COLS * GRID_ROWS).fill(true);
@@ -311,10 +302,25 @@ function loadCelebrity() {
     buildGuessButtons();
 }
 
+async function handleNextCelebrity() {
+    const data = await nextCelebrity(gameId);
+
+    if (data.finished) {
+        score = data.score;
+        showEndScreen();
+    } else {
+        currentNum = data.current;
+        totalCelebs = data.total;
+        score = data.score;
+        updateScore();
+        showCelebrity(data.celebrity);
+    }
+}
+
 function buildGuessButtons() {
     guessGrid.innerHTML = "";
 
-    const shuffled = [...CELEBRITIES].sort(() => Math.random() - 0.5);
+    const shuffled = [...celebrities].sort(() => Math.random() - 0.5);
 
     shuffled.forEach(name => {
         const btn = document.createElement("button");
@@ -344,33 +350,36 @@ function buildGuessButtons() {
             }
         });
 
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
             if (hasGuessed) return;
             hasGuessed = true;
 
             const hiddenCount = tiles.filter(t => t).length;
             const totalTiles = GRID_COLS * GRID_ROWS;
 
-            if (name === currentCorrectName) {
+            // Envoyer la devinette au backend
+            const result = await submitGuess(gameId, name, hiddenCount, totalTiles);
+
+            if (result.correct) {
                 btn.style.backgroundColor = "#2ecc71";
                 btn.style.borderColor = "#2ecc71";
-                const bonus = Math.round((hiddenCount / totalTiles) * 100);
-                score += bonus;
+                score = result.score;
                 updateScore();
                 feedback.style.color = "#2ecc71";
-                feedback.textContent = `Bravo. C'est ${currentCorrectName} ! +${bonus} pts`;
+                feedback.textContent = `Bravo. C'est ${result.correctName} ! +${result.bonus} pts`;
             } else {
                 btn.style.backgroundColor = "#e74c3c";
                 btn.style.borderColor = "#e74c3c";
                 feedback.style.color = "#e74c3c";
-                feedback.textContent = `Raté. C'était ${currentCorrectName}`;
+                feedback.textContent = `Raté. C'était ${result.correctName}`;
             }
 
             // Révéler tout
             tiles.fill(false);
             redrawCanvas();
 
-            setTimeout(loadCelebrity, 2500);
+            // Demander la célébrité suivante au backend
+            setTimeout(handleNextCelebrity, 2500);
         });
 
         guessGrid.appendChild(btn);
@@ -419,6 +428,10 @@ function showEndScreen() {
     left.appendChild(endBlock);
 }
 
+
+
+
+
 // Quizz
 
 async function loadQuestion() {
@@ -459,12 +472,33 @@ async function loadQuestion() {
 
         answersGrid.appendChild(btn);
     });
-};
+}
+
+
+
+// init 
+
+async function initGame() {
+    // Appel API pour démarrer une partie
+    const data = await startGame();
+
+    gameId = data.gameId;
+    celebrities = data.celebrities;
+    totalCelebs = data.total;
+    currentNum = data.current;
+
+    updateCounter();
+    showCelebrity(data.celebrity);
+    loadQuestion();
+}
+
+
+
 
 // Assembler et injecter
+
 container.appendChild(left);
 container.appendChild(right);
 document.body.appendChild(container);
 
-loadCelebrity();
-loadQuestion();
+initGame();
